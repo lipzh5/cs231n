@@ -43,10 +43,6 @@ def compute_saliency_maps(X, y, model):
     saliency = X.grad.abs()
     saliency, _ = torch.max(saliency, dim=1) # N, C, H,W
 
-    # loss = F.cross_entropy(scores, y)
-    # loss.backward()
-    # saliency, _ = torch.max(torch.abs(X.grad), dim=1)
-
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
     #                             END OF YOUR CODE                               #
@@ -95,8 +91,9 @@ def make_fooling_image(X, target_y, model):
       target_score.backward()
       grad = X_fooling.grad.data
       # update image using gradient ascent (normalize gradient first)
-      X_fooling.data += learning_rate * (grad/grad.norm())
-      X_fooling.grad.zero_()   # no need to track grads for X_fooling
+      with torch.no_grad():
+        X_fooling.data += learning_rate * (grad/grad.norm())
+        X_fooling.grad.zero_()   # clear grad
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -116,9 +113,9 @@ def class_visualization_update_step(img, model, target_y, l2_reg, learning_rate)
     scores = model(img)
     target_score = scores[:, target_y] - l2_reg * torch.norm(img)
     target_score.backward()
-    with torch.no_grad():
+    with torch.no_grad(): # no need to track here
       img += learning_rate * (img.grad/torch.norm(img.grad))
-      img.grad.zero_()   # no need to track these grad
+      img.grad.zero_()    
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ########################################################################
